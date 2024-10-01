@@ -1,0 +1,164 @@
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import axios from "axios";
+
+export const usePokemonStore = defineStore("pokemon", () => {
+  const pokemonList = ref([]);
+  const favorites = ref([]);
+  const currentPage = ref(1);
+  const itemsPerPage = 20;
+  const totalItems = ref(0);
+  const searchTerm = ref("");
+  const selectedTypes = ref([]);
+  const isLoading = ref(false);
+  const error = ref(null);
+
+  const filteredPokemon = computed(() => {
+    return pokemonList.value.filter(
+      (pokemon) =>
+        pokemon.name.toLowerCase().includes(searchTerm.value.toLowerCase()) &&
+        (selectedTypes.value.length === 0 ||
+          pokemon.types.some((type) => selectedTypes.value.includes(type))),
+    );
+  });
+
+  const paginatedPokemon = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredPokemon.value.slice(start, end);
+  });
+
+  const favoritePokemon = computed(() => {
+    return pokemonList.value.filter((pokemon) =>
+      favorites.value.includes(pokemon.id),
+    );
+  });
+
+  function loadFromCache() {
+    const cachedPokemons = localStorage.getItem("pokemonList");
+    if (cachedPokemons) {
+      pokemonList.value = JSON.parse(cachedPokemons);
+      totalItems.value = pokemonList.value.length;
+    }
+  }
+
+  function saveToCache() {
+    localStorage.setItem("pokemonList", JSON.stringify(pokemonList.value));
+  }
+
+  async function fetchPokemon(page = 1, limit = 100) {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    error.value = null;
+
+    if (pokemonList.value.length) {
+      isLoading.value = false;
+      return;
+    }
+
+    try {
+      const offset = (page - 1) * limit;
+      const response = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`,
+      );
+      const fetchedPokemons = await Promise.all(
+        response.data.results.map(async (pokemon, index) => {
+          // pequeno atraso para evitar sobrecarregar a API
+          await new Promise((resolve) => setTimeout(resolve, index * 50));
+          try {
+            const details = await axios.get(pokemon.url);
+            return {
+              id: details.data.id,
+              name: details.data.name,
+              types: details.data.types.map((type) => type.type.name),
+              stats: details.data.stats.map((stat) => ({
+                name: stat.stat.name,
+                value: stat.base_stat,
+              })),
+              image: details.data.sprites.front_default,
+              species: details.data.species.url,
+            };
+          } catch (err) {
+            console.error("Error fetching Pokemon details:", err);
+            return null;
+          }
+        }),
+      );
+
+      pokemonList.value = [
+        ...pokemonList.value,
+        ...fetchedPokemons.filter((pokemon) => pokemon !== null),
+      ];
+      totalItems.value = pokemonList.value.length;
+      saveToCache(); // Salva no cache
+    } catch (err) {
+      console.error("Error fetching Pokemon:", err);
+      error.value = "Failed to fetch Pokemon. Please try again later.";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function fetchEvolutionChain(speciesUrl) {
+    try {
+      const speciesResponse = await axios.get(speciesUrl);
+      const evolutionChainUrl = speciesResponse.data.evolution_chain.url;
+      const evolutionResponse = await axios.get(evolutionChainUrl);
+      return parseEvolutionChain(evolutionResponse.data.chain);
+    } catch (err) {
+      console.error("Error fetching evolution chain:", err);
+      return [];
+    }
+  }
+
+  function parseEvolutionChain(chain) {
+    const evolutions = [];
+    let current = chain;
+
+    while (current) {
+      evolutions.push({
+        name: current.species.name,
+        id: parseInt(current.species.url.split("/").slice(-2, -1)[0]),
+      });
+      current = current.evolves_to[0];
+    }
+
+    return evolutions;
+  }
+
+  function toggleFavorite(pokemonId) {
+    const index = favorites.value.indexOf(pokemonId);
+    if (index === -1) {
+      favorites.value.push(pokemonId);
+    } else {
+      favorites.value.splice(index, 1);
+    }
+    localStorage.setItem("favorites", JSON.stringify(favorites.value));
+  }
+
+  function loadFavorites() {
+    const storedFavorites = localStorage.getItem("favorites");
+    if (storedFavorites) {
+      favorites.value = JSON.parse(storedFavorites);
+    }
+  }
+
+  return {
+    pokemonList,
+    favorites,
+    currentPage,
+    totalItems,
+    searchTerm,
+    selectedTypes,
+    filteredPokemon,
+    paginatedPokemon,
+    favoritePokemon,
+    isLoading,
+    error,
+    fetchPokemon,
+    fetchEvolutionChain,
+    toggleFavorite,
+    loadFavorites,
+    loadFromCache,
+  };
+});
