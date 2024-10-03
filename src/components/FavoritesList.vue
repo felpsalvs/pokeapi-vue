@@ -27,8 +27,8 @@
   import { ref } from "vue";
 
   import { usePokemonStore } from "../store/api";
-  import PokemonCard from "./PokemonCard.vue";
-  import PokemonDetails from "./PokemonDetails.vue";
+  import PokemonCard from "./pokemon/PokemonCard.vue";
+  import PokemonDetails from "./pokemon/PokemonDetails.vue";
 
   const store = usePokemonStore();
   const selectedPokemon = ref(null);
