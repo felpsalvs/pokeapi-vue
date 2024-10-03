@@ -16,9 +16,9 @@
   }>();
 
   const variants: Record<string, string> = {
-    primary: "bg-blue-500 hover:bg-blue-600 text-white",
+    primary: "bg-red-600 hover:bg-red-400 text-white",
     secondary: "bg-gray-200 hover:bg-gray-300 text-gray-800",
-    ghost: "hover:bg-gray-100",
+    ghost: "hover:bg-red-400",
   };
 
   const variantClass = variants[props.variant] || "";
