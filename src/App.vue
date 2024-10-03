@@ -4,74 +4,48 @@
       <div class="container mx-auto flex justify-between items-center">
         <h1 class="text-2xl font-bold">Pokédex</h1>
         <nav>
-          <button
-            class="mx-2 py-1 px-3 rounded transition-colors duration-300"
-            :class="{
-              'bg-white text-red-600': currentView === 'list',
-              'hover:bg-red-500': currentView !== 'list',
-            }"
-            @click="currentView = 'list'"
+          <base-button
+            v-for="(route, index) in routes"
+            :key="index"
+            :variant="currentRoute === route.path ? 'primary' : 'ghost'"
+            class="mx-2"
+            @click="currentRoute = route.path"
           >
-            Lista
-          </button>
-          <button
-            class="mx-2 py-1 px-3 rounded transition-colors duration-300"
-            :class="{
-              'bg-white text-red-600': currentView === 'favorites',
-              'hover:bg-red-500': currentView !== 'favorites',
-            }"
-            @click="currentView = 'favorites'"
-          >
-            Favoritos
-          </button>
+            {{ route.name }}
+          </base-button>
         </nav>
       </div>
     </header>
-    <main class="p-4">
-      <div v-if="store.isLoading" class="text-center py-8">
-        <div
-          class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600"
-        ></div>
-        <p class="mt-2">Carregando Pokémon...</p>
-      </div>
-      <div v-else-if="store.error" class="text-center py-8 text-red-600">
-        {{ store.error }}
-      </div>
-      <template v-else>
-        <transition name="fade" mode="out-in">
-          <keep-alive>
-            <pokemon-list v-if="currentView === 'list'" />
-            <favorites-list v-else-if="currentView === 'favorites'" />
-          </keep-alive>
-        </transition>
-      </template>
+
+    <main class="container mx-auto p-4">
+      <component :is="currentView" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from "vue";
-  import { usePokemonStore } from "./store/api";
-  import PokemonList from "./components/PokemonList.vue";
-  import FavoritesList from "./components/FavoritesList.vue";
+  import { ref, computed, onMounted } from "vue";
+  import { usePokemonStore } from "./store/pokemon.store";
+  import HomeView from "./views/HomeView.vue";
+  import FavoritesView from "./views/FavoritesView.vue";
+  import BaseButton from "./components/ui/BaseButton.vue";
 
   const store = usePokemonStore();
-  const currentView = ref("list");
+  const currentRoute = ref("/");
 
-  onMounted(() => {
-    store.fetchPokemon();
-    store.loadFavorites();
+  const routes = [
+    { path: "/", name: "Home", component: HomeView },
+    { path: "/favorites", name: "Favorites", component: FavoritesView },
+  ];
+
+  const currentView = computed(
+    () =>
+      routes.find((route) => route.path === currentRoute.value)?.component ||
+      HomeView,
+  );
+
+  onMounted(async () => {
+    store.loadFromCache();
+    await store.fetchPokemon();
   });
 </script>
-
-<style>
-  .fade-enter-active,
-  .fade-leave-active {
-    transition: opacity 0.3s ease;
-  }
-
-  .fade-enter-from,
-  .fade-leave-to {
-    opacity: 0;
-  }
-</style>
