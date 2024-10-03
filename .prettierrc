@@ -1,6 +1,5 @@
 {
-    "singleQuote": false,
-    "semi": true,
-    "vueIndentScriptAndStyle": true
-  }
-  
+  "singleQuote": false,
+  "semi": true,
+  "vueIndentScriptAndStyle": true
+}
