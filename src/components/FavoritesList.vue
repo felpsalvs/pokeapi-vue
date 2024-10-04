@@ -25,15 +25,15 @@
 
 <script setup lang="ts">
   import { ref } from "vue";
-
   import { usePokemonStore } from "../store/pokemon.store";
   import PokemonCard from "./pokemon/PokemonCard.vue";
   import PokemonDetails from "./pokemon/PokemonDetails.vue";
+  import type { Pokemon } from "../store/pokemon.store";
 
   const store = usePokemonStore();
-  const selectedPokemon = ref(null);
+  const selectedPokemon = ref<Pokemon | null>(null);
 
-  function showPokemonDetails(pokemon) {
+  function showPokemonDetails(pokemon: Pokemon) {
     selectedPokemon.value = pokemon;
   }
 </script>
