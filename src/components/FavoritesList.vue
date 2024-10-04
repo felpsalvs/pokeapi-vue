@@ -26,7 +26,7 @@
 <script setup lang="ts">
   import { ref } from "vue";
 
-  import { usePokemonStore } from "../store/api";
+  import { usePokemonStore } from "../store/pokemon.store";
   import PokemonCard from "./pokemon/PokemonCard.vue";
   import PokemonDetails from "./pokemon/PokemonDetails.vue";
 
