@@ -18,7 +18,8 @@ export class ApiService {
       (response) => response,
       (error: AxiosError) => {
         const errorMessage =
-          error.response?.data?.message || "An error occurred";
+          (error.response?.data as { message: string })?.message ||
+          "An error occurred";
         console.error(errorMessage);
         return Promise.reject(error);
       },
